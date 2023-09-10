@@ -1,3 +1,1 @@
-WHat I need:
-
-- base model that interacts with Dynamo
+This is magicmodel
