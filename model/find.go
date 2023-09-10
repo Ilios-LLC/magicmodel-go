@@ -12,7 +12,7 @@ import (
 
 func (o *Operator) Find(q interface{}, id string) {
 	payload := map[string]types.AttributeValue{
-		"Type": &types.AttributeValueMemberS{Value: "movie"},
+		"Type": &types.AttributeValueMemberS{Value: dynamoDBTableName},
 		"ID":   &types.AttributeValueMemberS{Value: id},
 	}
 
