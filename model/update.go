@@ -17,6 +17,10 @@ func (o *Operator) Update(q interface{}, k string, v interface{}) *Operator {
 		Interface("value", v).
 		Str("type", payload.FieldByName("Type").String()).
 		Str("id", payload.FieldByName("ID").String()).
+		Str("created_at", payload.FieldByName("CreatedAt").String()).
+		Str("updated_at", payload.FieldByName("UpdatedAt").String()).
+		Str("name", parseModelName(q)).
+		Str("table", dynamoDBTableName).
 		Msg("Update")
 	update := expression.Set(expression.Name(k), expression.Value(v))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
