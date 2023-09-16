@@ -11,8 +11,9 @@ import (
 )
 
 func (o *Operator) Find(q interface{}, id string) {
+	name := parseModelName(q)
 	payload := map[string]types.AttributeValue{
-		"Type": &types.AttributeValueMemberS{Value: dynamoDBTableName},
+		"Type": &types.AttributeValueMemberS{Value: name},
 		"ID":   &types.AttributeValueMemberS{Value: id},
 	}
 
