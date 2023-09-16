@@ -12,6 +12,7 @@ import (
 
 func (o *Operator) Update(q interface{}, k string, v interface{}) *Operator {
 	payload := reflect.ValueOf(q).Elem()
+	log.Debug().Str("key", k).Interface("value", v).Str("type", payload.FieldByName("Type").String()).Msg("Updated item")
 	update := expression.Set(expression.Name(k), expression.Value(v))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
