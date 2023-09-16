@@ -31,7 +31,7 @@ func (o *Operator) Update(q interface{}, k string, v interface{}) *Operator {
 	payload.FieldByName(k).Set(reflect.ValueOf(v))
 
 	key := map[string]types.AttributeValue{
-		"Id":   &types.AttributeValueMemberS{Value: payload.FieldByName("ID").String()},
+		"ID":   &types.AttributeValueMemberS{Value: payload.FieldByName("ID").String()},
 		"Type": &types.AttributeValueMemberS{Value: payload.FieldByName("Type").String()},
 	}
 
