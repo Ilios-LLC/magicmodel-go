@@ -31,34 +31,6 @@ func (o *Operator) Find(q interface{}, id string) {
 		return
 	}
 
-	//thing := make(map[string]string)
-	//err = attributevalue.UnmarshalMap(out.Item, &thing)
-	//if err != nil {
-	//	panic(err)
-	//}
-
-	//val := reflect.ValueOf(q).Elem()
-	//for i := 0; i < val.NumField(); i++ {
-	//	fieldValue := val.Field(i)
-	//	fieldType := val.Type().Field(i).Type
-	//	if fieldType.String() == "magicmodel_go.Model" {
-	//		createdAt, err := time.Parse(timeLayout, thing["CreatedAt"])
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//
-	//		updatedAt, err := time.Parse(timeLayout, thing["UpdatedAt"])
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//
-	//		fieldValue.FieldByName("PK").SetString(thing["PK"])
-	//		fieldValue.FieldByName("SK").SetString(thing["SK"])
-	//		fieldValue.FieldByName("CreatedAt").Set(reflect.ValueOf(createdAt))
-	//		fieldValue.FieldByName("UpdatedAt").Set(reflect.ValueOf(updatedAt))
-	//	}
-	//}
-
 	err = attributevalue.UnmarshalMap(out.Item, q)
 	if err != nil {
 		panic(err)
