@@ -2,21 +2,22 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"reflect"
 	"time"
 )
 
 func (o *Operator) Save(q interface{}) *Operator {
-	log.Debug().Msg("Save")
+	if o.Err != nil {
+		return o
+	}
 	payload := reflect.ValueOf(q).Elem()
 
 	if payload.FieldByName("ID").String() == "" {
-		log.Debug().Msg("Generating metadata")
 		name := parseModelName(q)
 		t := time.Now()
 		payload.FieldByName("Type").SetString(name)
@@ -27,7 +28,7 @@ func (o *Operator) Save(q interface{}) *Operator {
 
 	av, err := attributevalue.MarshalMap(q)
 	if err != nil {
-		log.Err(err).Msg("failed to marshal map")
+		o.Err = fmt.Errorf("encountered an error during Save operation: %v", err)
 		return o
 	}
 
@@ -37,7 +38,8 @@ func (o *Operator) Save(q interface{}) *Operator {
 	})
 
 	if err != nil {
-		panic(err)
+		o.Err = fmt.Errorf("encountered an error during Save operation: %v", err)
+		return o
 	}
 
 	return o

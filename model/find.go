@@ -7,10 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/rs/zerolog/log"
 )
 
-func (o *Operator) Find(q interface{}, id string) {
+func (o *Operator) Find(q interface{}, id string) *Operator {
+	if o.Err != nil {
+		return o
+	}
 	name := parseModelName(q)
 	payload := map[string]types.AttributeValue{
 		"Type": &types.AttributeValueMemberS{Value: name},
@@ -23,18 +25,19 @@ func (o *Operator) Find(q interface{}, id string) {
 	})
 
 	if err != nil {
-		panic(err)
+		o.Err = fmt.Errorf("encountered an error during Find operation: %v", err)
+		return o
 	}
 
 	if out.Item == nil {
-		log.Error().Msg("Item not found")
-		return
+		o.Err = fmt.Errorf("encountered an error during Find operation: item not found")
+		return o
 	}
 
 	err = attributevalue.UnmarshalMap(out.Item, q)
 	if err != nil {
-		panic(err)
+		o.Err = fmt.Errorf("encountered an error during Find operation: %v", err)
+		return o
 	}
-
-	fmt.Println("thing")
+	return o
 }

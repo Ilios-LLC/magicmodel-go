@@ -7,18 +7,20 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/rs/zerolog/log"
 )
 
 func (o *Operator) All(q interface{}) *Operator {
+	if o.Err != nil {
+		return o
+	}
 	name := parseModelName(q)
 
 	cond := expression.Key("Type").Equal(expression.Value(name))
 	expr, err := expression.NewBuilder().WithKeyCondition(cond).Build()
-
-	log.Debug().Msg(fmt.Sprintf("%v", expr.Names()))
-	log.Debug().Msg(fmt.Sprintf("%v", expr.Values()))
-	log.Debug().Msg(fmt.Sprintf("%v", expr.KeyCondition()))
+	if err != nil {
+		o.Err = fmt.Errorf("encountered an error during All operations: %v", err)
+		return o
+	}
 
 	response, err := svc.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:                 aws.String(dynamoDBTableName),
@@ -28,13 +30,13 @@ func (o *Operator) All(q interface{}) *Operator {
 	})
 
 	if err != nil {
-		log.Printf("Couldn't query for movies released in %v. Here's why: %v\n", "", err)
+		o.Err = fmt.Errorf("encountered an error during All operations: %v", err)
 		return o
 	}
 
 	err = attributevalue.UnmarshalListOfMaps(response.Items, q)
 	if err != nil {
-		log.Printf("Couldn't unmarshal query response. Here's why: %v\n", err)
+		o.Err = fmt.Errorf("encountered an error during All operations: %v", err)
 		return o
 	}
 

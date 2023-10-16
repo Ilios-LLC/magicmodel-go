@@ -2,29 +2,30 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
+	//"github.com/rs/zerolog/log"
 	"reflect"
 	"time"
 )
 
 func (o *Operator) Create(q interface{}) *Operator {
-	log.Debug().Msg("Create")
+	if o.Err != nil {
+		return o
+	}
 	payload := reflect.ValueOf(q).Elem()
 
 	if payload.FieldByName("ID").String() != "" {
-		log.Debug().Msg("Item already exists, skipping")
+		o.Err = fmt.Errorf("encountered an error during Create operations: item already exists. try the update method instead")
 		return o
 	}
 
 	name := parseModelName(q)
 	t := time.Now()
 
-	log.Debug().Msg("PK is empty, generating")
-	log.Debug().Msg(payload.FieldByName("CreatedAt").String())
 	payload.FieldByName("Type").SetString(name)
 	payload.FieldByName("ID").SetString(uuid.New().String())
 	payload.FieldByName("CreatedAt").Set(reflect.ValueOf(t))
@@ -32,7 +33,7 @@ func (o *Operator) Create(q interface{}) *Operator {
 
 	av, err := attributevalue.MarshalMap(q)
 	if err != nil {
-		log.Err(err).Msg("failed to marshal map")
+		o.Err = fmt.Errorf("encountered an error during Create operations: %v", err)
 		return o
 	}
 
@@ -42,7 +43,8 @@ func (o *Operator) Create(q interface{}) *Operator {
 	})
 
 	if err != nil {
-		panic(err)
+		o.Err = fmt.Errorf("encountered an error during Create operations: %v", err)
+		return o
 	}
 
 	return o

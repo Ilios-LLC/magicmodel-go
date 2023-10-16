@@ -8,12 +8,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"os"
 	"time"
 )
 
-type Operator struct{}
+type Operator struct {
+	Err error
+}
 
 type Deconstructed struct {
 	FieldName  string
@@ -25,18 +26,18 @@ var svc *dynamodb.Client
 var dynamoDBTableName string
 
 func Start() *Operator {
-	return &Operator{}
+	return &Operator{
+		Err: nil,
+	}
 }
 
 func init() {
-	log.Debug().Msg("Initializing MagicModel")
 	cfg, err := config.LoadDefaultConfig(context.TODO(), func(o *config.LoadOptions) error {
 		o.Region = "us-east-1"
 		return nil
 	})
 
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 
@@ -45,13 +46,17 @@ func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
 	dynamoDBTableName = os.Getenv("MM_DYNAMODB_TABLE_NAME")
-	log.Debug().Msg("DynamoDB table name: " + dynamoDBTableName)
+	if dynamoDBTableName == "" {
+		os.Exit(1)
+	}
 
-	createDynamoDBTable()
+	err = createDynamoDBTable()
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
-func createDynamoDBTable() {
-	log.Debug().Msg("Creating DynamoDB table")
+func createDynamoDBTable() error {
 	// create DYNAMO DB table
 	_, err := svc.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
 		TableName: aws.String(dynamoDBTableName),
@@ -73,14 +78,12 @@ func createDynamoDBTable() {
 	})
 	if err != nil {
 		if err.Error() != "ResourceInUseException: Cannot create preexisting table" {
-			log.Debug().Msg("Table already exists, skipping")
-			return
+			return nil
 		} else {
-			panic(err)
+			return fmt.Errorf("encountered an error during init operation: %v", err)
 		}
 	}
 
-	log.Info().Msg("Waiting 10 seconds for table to be created, this is a one-time wait per new database")
 	time.Sleep(10 * time.Second)
-	log.Info().Msg("Table created")
+	return nil
 }

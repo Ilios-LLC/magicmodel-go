@@ -2,20 +2,24 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/rs/zerolog/log"
 	"reflect"
 )
 
 func (o *Operator) Update(q interface{}, k string, v interface{}) *Operator {
+	if o.Err != nil {
+		return o
+	}
 	payload := reflect.ValueOf(q).Elem()
 	update := expression.Set(expression.Name(k), expression.Value(v))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
-		panic(err)
+		o.Err = fmt.Errorf("encountered an error during Update operation: %v", err)
+		return o
 	}
 
 	payload.FieldByName(k).Set(reflect.ValueOf(v))
@@ -35,8 +39,8 @@ func (o *Operator) Update(q interface{}, k string, v interface{}) *Operator {
 	})
 
 	if err != nil {
-		log.Err(err)
+		o.Err = fmt.Errorf("encountered an error during Update operation: %v", err)
+		return o
 	}
-
 	return o
 }
