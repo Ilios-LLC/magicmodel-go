@@ -31,7 +31,7 @@ func Start() *Operator {
 	}
 }
 
-func init() {
+func NewMagicModelOperator() (*Operator, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(), func(o *config.LoadOptions) error {
 		o.Region = "us-east-1"
 		return nil
@@ -47,13 +47,18 @@ func init() {
 
 	dynamoDBTableName = os.Getenv("MM_DYNAMODB_TABLE_NAME")
 	if dynamoDBTableName == "" {
-		os.Exit(1)
+		//os.Exit(1)
+		return nil, fmt.Errorf("please set the environment variable \"MM_DYNAMODB_TABLE_NAME\" to continue")
 	}
 
 	err = createDynamoDBTable()
 	if err != nil {
-		os.Exit(1)
+		//os.Exit(1)
+		return nil, fmt.Errorf("encountered an error while creating DynamoDb table %s: %s", dynamoDBTableName, err)
 	}
+	return &Operator{
+		Err: nil,
+	}, nil
 }
 
 func createDynamoDBTable() error {
@@ -79,11 +84,15 @@ func createDynamoDBTable() error {
 	if err != nil {
 		if err.Error() != "ResourceInUseException: Cannot create preexisting table" {
 			return nil
-		} else {
-			return fmt.Errorf("encountered an error during init operation: %v", err)
 		}
+		return fmt.Errorf("encountered an error during init operation: %v", err)
 	}
 
-	time.Sleep(10 * time.Second)
+	waiter := dynamodb.NewTableExistsWaiter(svc)
+	_, err = waiter.WaitForOutput(context.TODO(), &dynamodb.DescribeTableInput{TableName: &dynamoDBTableName}, 20*time.Second)
+	if err != nil {
+		return fmt.Errorf("error while waiting for table to be created: %s", err)
+	}
+
 	return nil
 }
