@@ -31,14 +31,14 @@ func Start() *Operator {
 	}
 }
 
-func NewMagicModelOperator() (*Operator, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), func(o *config.LoadOptions) error {
+func NewMagicModelOperator(ctx context.Context) (*Operator, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
+		// TODO
 		o.Region = "us-east-1"
 		return nil
 	})
-
 	if err != nil {
-		os.Exit(1)
+		return nil, fmt.Errorf("an error occurred when getting aws config %s", err)
 	}
 
 	svc = dynamodb.NewFromConfig(cfg)
@@ -51,7 +51,7 @@ func NewMagicModelOperator() (*Operator, error) {
 		return nil, fmt.Errorf("please set the environment variable \"MM_DYNAMODB_TABLE_NAME\" to continue")
 	}
 
-	err = createDynamoDBTable()
+	err = createDynamoDBTable(ctx)
 	if err != nil {
 		//os.Exit(1)
 		return nil, fmt.Errorf("encountered an error while creating DynamoDb table %s: %s", dynamoDBTableName, err)
@@ -61,9 +61,9 @@ func NewMagicModelOperator() (*Operator, error) {
 	}, nil
 }
 
-func createDynamoDBTable() error {
+func createDynamoDBTable(ctx context.Context) error {
 	// create DYNAMO DB table
-	_, err := svc.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
+	_, err := svc.CreateTable(ctx, &dynamodb.CreateTableInput{
 		TableName: aws.String(dynamoDBTableName),
 		AttributeDefinitions: []types.AttributeDefinition{{
 			AttributeName: aws.String("Type"),
@@ -89,7 +89,7 @@ func createDynamoDBTable() error {
 	}
 
 	waiter := dynamodb.NewTableExistsWaiter(svc)
-	_, err = waiter.WaitForOutput(context.TODO(), &dynamodb.DescribeTableInput{TableName: &dynamoDBTableName}, 20*time.Second)
+	_, err = waiter.WaitForOutput(ctx, &dynamodb.DescribeTableInput{TableName: &dynamoDBTableName}, 20*time.Second)
 	if err != nil {
 		return fmt.Errorf("error while waiting for table to be created: %s", err)
 	}
