@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
-	"os"
 	"time"
 )
 
@@ -31,7 +30,7 @@ func Start() *Operator {
 	}
 }
 
-func NewMagicModelOperator(ctx context.Context) (*Operator, error) {
+func NewMagicModelOperator(ctx context.Context, tableName string) (*Operator, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
 		// TODO
 		o.Region = "us-east-1"
@@ -45,11 +44,11 @@ func NewMagicModelOperator(ctx context.Context) (*Operator, error) {
 
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
-	dynamoDBTableName = os.Getenv("MM_DYNAMODB_TABLE_NAME")
-	if dynamoDBTableName == "" {
-		//os.Exit(1)
-		return nil, fmt.Errorf("please set the environment variable \"MM_DYNAMODB_TABLE_NAME\" to continue")
-	}
+	dynamoDBTableName = tableName
+	//if dynamoDBTableName == "" {
+	//	//os.Exit(1)
+	//	return nil, fmt.Errorf("please set the environment variable \"MM_DYNAMODB_TABLE_NAME\" to continue")
+	//}
 
 	err = createDynamoDBTable(ctx)
 	if err != nil {
