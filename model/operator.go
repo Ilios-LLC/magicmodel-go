@@ -88,10 +88,10 @@ func createDynamoDBTable(ctx context.Context) error {
 	}
 
 	waiter := dynamodb.NewTableExistsWaiter(svc, func(o *dynamodb.TableExistsWaiterOptions) {
-		o.MaxDelay = time.Second * 60
-		o.MinDelay = time.Second * 10
+		o.MaxDelay = time.Second * 10
+		o.MinDelay = time.Second * 5
 	})
-	_, err = waiter.WaitForOutput(ctx, &dynamodb.DescribeTableInput{TableName: &dynamoDBTableName}, 120*time.Second)
+	_, err = waiter.WaitForOutput(ctx, &dynamodb.DescribeTableInput{TableName: &dynamoDBTableName}, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("error while waiting for table to be created: %s", err)
 	}
