@@ -30,12 +30,12 @@ func Start() *Operator {
 	}
 }
 
-func NewMagicModelOperator(ctx context.Context, tableName string) (*Operator, error) {
-	cfg, err := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
-		// TODO
-		o.Region = "us-east-1"
-		return nil
-	})
+func NewMagicModelOperator(ctx context.Context, tableName string, region *string) (*Operator, error) {
+	if region == nil {
+		defaultRegion := "us-east-1"
+		region = &defaultRegion
+	}
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*region))
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred when getting aws config %s", err)
 	}
@@ -45,10 +45,6 @@ func NewMagicModelOperator(ctx context.Context, tableName string) (*Operator, er
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
 	dynamoDBTableName = tableName
-	//if dynamoDBTableName == "" {
-	//	//os.Exit(1)
-	//	return nil, fmt.Errorf("please set the environment variable \"MM_DYNAMODB_TABLE_NAME\" to continue")
-	//}
 
 	err = createDynamoDBTable(ctx)
 	if err != nil {
