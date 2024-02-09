@@ -30,12 +30,10 @@ func Start() *Operator {
 	}
 }
 
-func NewMagicModelOperator(ctx context.Context, tableName string, region *string) (*Operator, error) {
-	if region == nil {
-		defaultRegion := "us-east-1"
-		region = &defaultRegion
-	}
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*region))
+// region *string, provider *credentials.StaticCredentialsProvider
+func NewMagicModelOperator(ctx context.Context, tableName string, optFns ...func(options *config.LoadOptions) error) (*Operator, error) {
+
+	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred when getting aws config %s", err)
 	}
