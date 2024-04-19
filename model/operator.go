@@ -24,12 +24,6 @@ type Deconstructed struct {
 var svc *dynamodb.Client
 var dynamoDBTableName string
 
-func Start() *Operator {
-	return &Operator{
-		Err: nil,
-	}
-}
-
 // region *string, provider *credentials.StaticCredentialsProvider
 func NewMagicModelOperator(ctx context.Context, tableName string, optFns ...func(options *config.LoadOptions) error) (*Operator, error) {
 

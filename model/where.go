@@ -17,7 +17,8 @@ func (o *Operator) Where(q interface{}, k string, v interface{}) *Operator {
 
 	cond := expression.Key("Type").Equal(expression.Value(name))
 	cond2 := expression.Name(k).Equal(expression.Value(v))
-	expr, err := expression.NewBuilder().WithKeyCondition(cond).WithFilter(cond2).Build()
+	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())
+	expr, err := expression.NewBuilder().WithKeyCondition(cond).WithFilter(cond2).WithFilter(softDeleteCond).Build()
 	if err != nil {
 		o.Err = fmt.Errorf("encountered an error during Where operation: %v", err)
 		return o

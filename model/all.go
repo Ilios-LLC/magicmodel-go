@@ -16,7 +16,8 @@ func (o *Operator) All(q interface{}) *Operator {
 	name := parseModelName(q)
 
 	cond := expression.Key("Type").Equal(expression.Value(name))
-	expr, err := expression.NewBuilder().WithKeyCondition(cond).Build()
+	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())
+	expr, err := expression.NewBuilder().WithKeyCondition(cond).WithFilter(softDeleteCond).Build()
 	if err != nil {
 		o.Err = fmt.Errorf("encountered an error during All operations: %v", err)
 		return o
@@ -27,6 +28,7 @@ func (o *Operator) All(q interface{}) *Operator {
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),
+		FilterExpression:          expr.Filter(),
 	})
 
 	if err != nil {
