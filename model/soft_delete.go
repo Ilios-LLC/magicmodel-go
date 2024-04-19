@@ -24,8 +24,7 @@ func (o *Operator) SoftDelete(q interface{}) *Operator {
 		return o
 	}
 
-	payload.FieldByName("DeletedAt").Set(reflect.ValueOf(reflect.ValueOf(t)))
-
+	//payload.FieldByName("DeletedAt").Set(reflect.ValueOf(t))
 	key := map[string]types.AttributeValue{
 		"ID":   &types.AttributeValueMemberS{Value: payload.FieldByName("ID").String()},
 		"Type": &types.AttributeValueMemberS{Value: payload.FieldByName("Type").String()},

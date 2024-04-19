@@ -17,7 +17,8 @@ func (o *Operator) All(q interface{}) *Operator {
 
 	cond := expression.Key("Type").Equal(expression.Value(name))
 	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())
-	expr, err := expression.NewBuilder().WithKeyCondition(cond).WithFilter(softDeleteCond).Build()
+	sofDeleteCond2 := expression.Not(expression.Name("DeletedAt").NotEqual(expression.Value(nil)))
+	expr, err := expression.NewBuilder().WithKeyCondition(cond).WithFilter(softDeleteCond.Or(sofDeleteCond2)).Build()
 	if err != nil {
 		o.Err = fmt.Errorf("encountered an error during All operations: %v", err)
 		return o
