@@ -12,7 +12,9 @@ import (
 )
 
 type Operator struct {
-	Err error
+	Err      error
+	KmsKeyId *string
+	AwsCfg   aws.Config
 }
 
 type Deconstructed struct {
@@ -24,8 +26,10 @@ type Deconstructed struct {
 var svc *dynamodb.Client
 var dynamoDBTableName string
 
+// TODO create an option for encrypted table? will required a kms key to be passed in.
+
 // region *string, provider *credentials.StaticCredentialsProvider
-func NewMagicModelOperator(ctx context.Context, tableName string, optFns ...func(options *config.LoadOptions) error) (*Operator, error) {
+func NewMagicModelOperator(ctx context.Context, tableName string, kmsKeyId *string, optFns ...func(options *config.LoadOptions) error) (*Operator, error) {
 
 	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
@@ -44,7 +48,10 @@ func NewMagicModelOperator(ctx context.Context, tableName string, optFns ...func
 		return nil, fmt.Errorf("encountered an error while creating DynamoDb table %s: %s", dynamoDBTableName, err)
 	}
 	return &Operator{
-		Err: nil,
+		// TODO would have the KMS key here
+		KmsKeyId: kmsKeyId,
+		AwsCfg:   cfg,
+		Err:      nil,
 	}, nil
 }
 
