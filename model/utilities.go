@@ -39,3 +39,23 @@ func parseModelName(q interface{}) string {
 	c := b[strings.LastIndex(b, ".")+1:]
 	return strcase.SnakeCase(c)
 }
+
+func getFieldValue(value reflect.Value, fieldPath string) (reflect.Value, bool) {
+	fields := strings.Split(fieldPath, ".")
+
+	for _, field := range fields {
+		if value.Kind() == reflect.Ptr {
+			value = value.Elem()
+		}
+		if value.Kind() != reflect.Struct {
+			return reflect.Value{}, false
+		}
+
+		value = value.FieldByName(field)
+		if !value.IsValid() {
+			return reflect.Value{}, false
+		}
+	}
+
+	return value, true
+}

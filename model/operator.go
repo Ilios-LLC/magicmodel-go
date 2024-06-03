@@ -12,7 +12,8 @@ import (
 )
 
 type Operator struct {
-	Err error
+	Err          error
+	isWhereChain bool
 }
 
 type Deconstructed struct {
