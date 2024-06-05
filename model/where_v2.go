@@ -50,7 +50,7 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 				}
 			}
 			reflect.ValueOf(q).Elem().Set(newQ)
-			o.isWhereChain = true
+			o.IsWhereChain = true
 			return o
 		}
 	} else {
@@ -58,7 +58,7 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 		return o
 	}
 
-	if o.isWhereChain {
+	if o.IsWhereChain {
 		return o
 	}
 	cond := expression.Key("Type").Equal(expression.Value(name))
@@ -89,6 +89,6 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 		o.Err = fmt.Errorf("encountered an error during Where operation: %v", err)
 		return o
 	}
-	o.isWhereChain = true
+	o.IsWhereChain = true
 	return o
 }
