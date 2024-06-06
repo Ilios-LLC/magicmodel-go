@@ -50,7 +50,7 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 				}
 			}
 			reflect.ValueOf(q).Elem().Set(newQ)
-			o.IsWhereChain = true
+			//o.IsWhereChain = true
 			return o
 		}
 	} else {
@@ -58,9 +58,9 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 		return o
 	}
 
-	if o.IsWhereChain {
-		return o
-	}
+	//if o.IsWhereChain {
+	//	return o
+	//}
 	cond := expression.Key("Type").Equal(expression.Value(name))
 	cond2 := expression.Name(k).Equal(expression.Value(v))
 	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())
@@ -89,6 +89,6 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 		o.Err = fmt.Errorf("encountered an error during Where operation: %v", err)
 		return o
 	}
-	o.IsWhereChain = true
+	//o.IsWhereChain = true
 	return o
 }
