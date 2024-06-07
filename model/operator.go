@@ -13,7 +13,7 @@ import (
 
 type Operator struct {
 	Err          error
-	IsWhereChain bool // TODO this only works for one chain. then all other chains are set to true
+	IsWhereChain bool
 }
 
 type Deconstructed struct {
