@@ -19,7 +19,7 @@ func (o *Operator) SetWhereChainFalse() *Operator {
 	return o
 }
 
-func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
+func (o *Operator) WhereV2(isChain bool, q interface{}, k string, v interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
@@ -58,7 +58,7 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 				}
 			}
 			reflect.ValueOf(q).Elem().Set(newQ)
-			o.IsWhereChain = true
+			o.IsWhereChain = isChain
 			return o
 		}
 	} else {
@@ -97,6 +97,6 @@ func (o *Operator) WhereV2(q interface{}, k string, v interface{}) *Operator {
 		o.Err = fmt.Errorf("encountered an error during Where operation: %v", err)
 		return o
 	}
-	o.IsWhereChain = true
+	o.IsWhereChain = isChain
 	return o
 }
