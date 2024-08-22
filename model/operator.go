@@ -26,15 +26,20 @@ var svc *dynamodb.Client
 var dynamoDBTableName string
 
 // region *string, provider *credentials.StaticCredentialsProvider
-func NewMagicModelOperator(ctx context.Context, tableName string, optFns ...func(options *config.LoadOptions) error) (*Operator, error) {
-
+func NewMagicModelOperator(ctx context.Context, tableName string, endpoint *string, optFns ...func(options *config.LoadOptions) error) (*Operator, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred when getting aws config %s", err)
 	}
 
-	svc = dynamodb.NewFromConfig(cfg)
+	var optFnsDynamodb []func(*dynamodb.Options)
+	if endpoint != nil {
+		optFnsDynamodb = append(optFnsDynamodb, func(o *dynamodb.Options) {
+			o.BaseEndpoint = endpoint
+		})
+	}
 
+	svc = dynamodb.NewFromConfig(cfg, optFnsDynamodb...)
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
 	dynamoDBTableName = tableName
