@@ -11,14 +11,6 @@ import (
 	"strings"
 )
 
-func (o *Operator) SetWhereChainFalse() *Operator {
-	if o.Err != nil {
-		return o
-	}
-	o.IsWhereChain = false
-	return o
-}
-
 func (o *Operator) WhereV2(isChain bool, q interface{}, k string, v interface{}) *Operator {
 	if o.Err != nil {
 		return o
