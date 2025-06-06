@@ -16,13 +16,13 @@ func (o *Operator) Create(q interface{}) *Operator {
 		return o
 	}
 
-	name, err := parseModelName(q)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
 	}
 
-	err = validateInput(q, "Create", name)
+	err = ValidateInput(q, "Create", name)
 	if err != nil {
 		o.Err = err
 		return o

@@ -1,1 +1,4 @@
 .idea
+.zencoder
+.DS_Store
+magicmodel-go

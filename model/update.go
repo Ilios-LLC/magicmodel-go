@@ -15,13 +15,13 @@ func (o *Operator) Update(q interface{}, k string, v interface{}) *Operator {
 		return o
 	}
 
-	name, err := parseModelName(q)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
 	}
 
-	err = validateInput(q, "Update", name)
+	err = ValidateInput(q, "Update", name)
 	if err != nil {
 		o.Err = err
 		return o

@@ -1,7 +1,12 @@
 package model
 
 import (
+	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/stoewer/go-strcase"
 	"reflect"
 	"strings"
@@ -42,7 +47,7 @@ func generateNewModelInfo(v reflect.Value) {
 
 }
 
-func parseModelName(q interface{}) (string, error) {
+func ParseModelName(q interface{}) (string, error) {
 	t := reflect.TypeOf(q)
 
 	// Unwrap pointer
@@ -69,7 +74,7 @@ func parseModelName(q interface{}) (string, error) {
 	return strcase.SnakeCase(t.Name()), nil
 }
 
-func getFieldValue(value reflect.Value, fieldPath string) (reflect.Value, bool) {
+func GetFieldValue(value reflect.Value, fieldPath string) (reflect.Value, bool) {
 	fields := strings.Split(fieldPath, ".")
 
 	for _, field := range fields {
@@ -89,7 +94,7 @@ func getFieldValue(value reflect.Value, fieldPath string) (reflect.Value, bool) 
 	return value, true
 }
 
-func validateInput(q interface{}, operation, structName string) error {
+func ValidateInput(q interface{}, operation, structName string) error {
 	val := reflect.ValueOf(q)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
 		return fmt.Errorf("the %s operation encountered an error: expected a non-nil pointer to a struct, got %T", operation, q)
@@ -154,4 +159,104 @@ func validateInputSlice(q interface{}, operation, structName string) error {
 	}
 
 	return nil
+}
+
+// compareValues compares two values and returns true if they match
+// Handles various types of comparisons including pointers, direct equality, and string representation
+func compareValues(fieldValue reflect.Value, compareValue interface{}) bool {
+	// Handle nil pointer values for booleans
+	if fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil() && fieldValue.Elem().Kind() == reflect.Bool {
+		// Compare with the dereferenced value
+		return compareValue == fieldValue.Elem().Bool()
+	}
+
+	// Try direct comparison
+	if reflect.DeepEqual(fieldValue.Interface(), compareValue) {
+		return true
+	}
+
+	// String comparison as fallback
+	fieldStr := fmt.Sprintf("%v", fieldValue.Interface())
+	compareStr := fmt.Sprintf("%v", compareValue)
+	return fieldStr == compareStr
+}
+
+// filterSliceByField filters a slice based on a field name and value
+// Returns a new slice containing only the elements that match
+func filterSliceByField(slice reflect.Value, fieldName string, compareValue interface{}) reflect.Value {
+	// Create a new slice of the same type
+	newSlice := reflect.New(slice.Type()).Elem()
+
+	// Iterate through each element
+	for i := 0; i < slice.Len(); i++ {
+		elem := slice.Index(i)
+		if elem.Kind() == reflect.Pointer {
+			elem = elem.Elem()
+		}
+
+		var fieldValue reflect.Value
+		var found bool
+
+		// Handle nested fields vs direct fields
+		if strings.Contains(fieldName, ".") {
+			fieldValue, found = GetFieldValue(elem, fieldName)
+		} else {
+			fieldValue = elem.FieldByName(fieldName)
+			found = fieldValue.IsValid()
+		}
+
+		// Skip if field not found
+		if !found {
+			continue
+		}
+
+		// Add to new slice if values match
+		if compareValues(fieldValue, compareValue) {
+			newSlice = reflect.Append(newSlice, elem)
+		}
+	}
+
+	return newSlice
+}
+
+// buildWhereExpression builds the DynamoDB expression for a where query
+func buildWhereExpression(typeName, fieldName string, fieldValue interface{}) (expression.Expression, error) {
+	// Create key condition for the Type
+	keyCondition := expression.Key("Type").Equal(expression.Value(typeName))
+
+	// Create filter condition for the field
+	fieldCondition := expression.Name(fieldName).Equal(expression.Value(fieldValue))
+
+	// Add soft delete conditions
+	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())
+	softDeleteCond2 := expression.Not(expression.Name("DeletedAt").NotEqual(expression.Value(nil)))
+
+	// Build the complete expression
+	return expression.NewBuilder().
+		WithKeyCondition(keyCondition).
+		WithFilter(fieldCondition.And(softDeleteCond.Or(softDeleteCond2))).
+		Build()
+}
+
+// executeWhereQuery executes a DynamoDB query with the given expression
+func (o *Operator) executeWhereQuery(expr expression.Expression, result interface{}) *Operator {
+	response, err := svc.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 aws.String(dynamoDBTableName),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		FilterExpression:          expr.Filter(),
+	})
+
+	if err != nil {
+		o.Err = fmt.Errorf("encountered an error during Where operation: %v", err)
+		return o
+	}
+
+	err = attributevalue.UnmarshalListOfMaps(response.Items, result)
+	if err != nil {
+		o.Err = fmt.Errorf("encountered an error during Where operation: %v", err)
+	}
+
+	return o
 }

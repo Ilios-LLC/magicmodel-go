@@ -23,6 +23,8 @@ go get github.com/Ilios-LLC/magicmodel-go
 
 ## Quick Start
 
+> **NOTE**: In order to implement chaining (WhereV3), you MUST check the error after each operation (if o.Err != nil) before proceeding to the next operation. This is because the chaining will not work if the previous operation fails.
+
 ```go
 package main
 
@@ -110,7 +112,6 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info().Msg(fmt.Sprintf("Dog deleted successfully: %+v", foundDog))
-
 }
 ```
 
@@ -141,30 +142,40 @@ log.Info().Msg(fmt.Sprintf("Found labradors with name Fido successfully: %+v", l
 ### Soft Delete
 
 ```go
-// Soft delete (record remains in database but marked as deleted and is not returned in queries)
+// Soft delete (record remains in database but marked as deleted and is not returned in list queries)
 o := mm.SoftDelete(&dog)
 if o.Err != nil {
 	fmt.Println(o.Err)
 	os.Exit(1)
 }
+// SoftDelete still returns the object if you use Find
+var foundDog Dog
+o = mm.Find(&foundDog, buddy.ID)
+if o.Err != nil {
+    fmt.Println(o.Err)
+    os.Exit(1)
+}
 ```
 
-## Local Development
+## Local Development and Testing
 
-Simply create a test file and run magic model commands against a DynamoDB table.
+MagicModel-Go includes comprehensive integration tests in `integration_test.go` that demonstrate all the key features of the library and verify they work correctly against a real DynamoDB instance.
 
-The function `NewMagicModelOperator` will create the table if it does not exist, so you can run tests without needing to manually set up the DynamoDB table.
-
-Alternatively, you can use [localstack](https://docs.localstack.cloud/user-guide/aws/dynamodb/) to run a local DynamoDB instance for testing.
-
-## Testing
 MagicModel-Go utilizes `mockery` to generate mocks for the DynamoDB client, allowing you to write unit tests without needing a live DynamoDB instance.
 
-To run tests, use the following command:
-
+### Run Tests
+Run tests with:
 ```bash
 go test ./...
 ```
+
+### Running Integration Tests with LocalStack
+
+As a part of `go test ./...` an integration test again a LocalStack DynamoDB table will run. This is the most comprehensive way to test the library.
+
+This script requires Docker and Docker Compose to be installed on your system.
+
+The function `NewMagicModelOperator` will create the table if it does not exist, so you can run tests without needing to manually set up the DynamoDB table.
 
 ## Contributing
 

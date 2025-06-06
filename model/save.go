@@ -16,13 +16,13 @@ func (o *Operator) Save(q interface{}) *Operator {
 		return o
 	}
 
-	name, err := parseModelName(q)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
 	}
-	
-	err = validateInput(q, "Save", name)
+
+	err = ValidateInput(q, "Save", name)
 	if err != nil {
 		o.Err = err
 		return o

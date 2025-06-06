@@ -13,7 +13,7 @@ func (o *Operator) Where(q interface{}, k string, v interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
-	name, err := parseModelName(q)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
