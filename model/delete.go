@@ -13,8 +13,22 @@ func (o *Operator) Delete(q interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
+
+	name, err := parseModelName(q)
+	err = validateInput(q, "Delete", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
+	err = validateInput(q, "Delete", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
 	payload := reflect.ValueOf(q).Elem()
-	_, err := svc.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+	_, err = svc.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
 		TableName: aws.String(dynamoDBTableName), Key: map[string]types.AttributeValue{
 			"ID":   &types.AttributeValueMemberS{Value: payload.FieldByName("ID").String()},
 			"Type": &types.AttributeValueMemberS{Value: payload.FieldByName("Type").String()},

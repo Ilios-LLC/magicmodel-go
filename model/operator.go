@@ -15,6 +15,8 @@ import (
 type Operator struct {
 	Err          error
 	IsWhereChain bool
+	db           DynamoDBAPI
+	tableName    string
 }
 
 type Deconstructed struct {
@@ -23,10 +25,10 @@ type Deconstructed struct {
 	FieldType  string
 }
 
-var svc *dynamodb.Client
+// For backward compatibility
+var svc DynamoDBAPI
 var dynamoDBTableName string
 
-// region *string, provider *credentials.StaticCredentialsProvider
 func NewMagicModelOperator(ctx context.Context, tableName string, endpoint *string, optFns ...func(options *config.LoadOptions) error) (*Operator, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
@@ -40,25 +42,46 @@ func NewMagicModelOperator(ctx context.Context, tableName string, endpoint *stri
 		})
 	}
 
-	svc = dynamodb.NewFromConfig(cfg, optFnsDynamodb...)
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	dbClient := dynamodb.NewFromConfig(cfg, optFnsDynamodb...)
 
+	// For backward compatibility
+	svc = dbClient
 	dynamoDBTableName = tableName
 
-	err = createDynamoDBTable(ctx)
-	if err != nil {
-		//os.Exit(1)
-		return nil, fmt.Errorf("encountered an error while creating DynamoDb table %s: %s", dynamoDBTableName, err)
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	operator := &Operator{
+		Err:       nil,
+		db:        dbClient,
+		tableName: tableName,
 	}
-	return &Operator{
-		Err: nil,
-	}, nil
+
+	err = operator.createDynamoDBTable(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("encountered an error while creating DynamoDb table %s: %s", tableName, err)
+	}
+
+	return operator, nil
 }
 
-func createDynamoDBTable(ctx context.Context) error {
+// NewMagicModelOperatorWithClient creates a new operator with a custom DynamoDB client
+// This is useful for testing with mock clients
+func NewMagicModelOperatorWithClient(dbClient DynamoDBAPI, tableName string) *Operator {
+	// For backward compatibility
+	svc = dbClient
+	dynamoDBTableName = tableName
+
+	return &Operator{
+		Err:       nil,
+		db:        dbClient,
+		tableName: tableName,
+	}
+}
+
+func (o *Operator) createDynamoDBTable(ctx context.Context) error {
 	// create DYNAMO DB table
-	_, err := svc.CreateTable(ctx, &dynamodb.CreateTableInput{
-		TableName: aws.String(dynamoDBTableName),
+	_, err := o.db.CreateTable(ctx, &dynamodb.CreateTableInput{
+		TableName: aws.String(o.tableName),
 		AttributeDefinitions: []types.AttributeDefinition{{
 			AttributeName: aws.String("Type"),
 			AttributeType: types.ScalarAttributeTypeS,
@@ -85,11 +108,11 @@ func createDynamoDBTable(ctx context.Context) error {
 		return fmt.Errorf("encountered an error during init operation: %w", err)
 	}
 
-	waiter := dynamodb.NewTableExistsWaiter(svc, func(o *dynamodb.TableExistsWaiterOptions) {
+	waiter := dynamodb.NewTableExistsWaiter(o.db, func(o *dynamodb.TableExistsWaiterOptions) {
 		o.MaxDelay = time.Second * 10
 		o.MinDelay = time.Second * 5
 	})
-	_, err = waiter.WaitForOutput(ctx, &dynamodb.DescribeTableInput{TableName: &dynamoDBTableName}, 30*time.Second)
+	_, err = waiter.WaitForOutput(ctx, &dynamodb.DescribeTableInput{TableName: &o.tableName}, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("error while waiting for table to be created: %s", err)
 	}

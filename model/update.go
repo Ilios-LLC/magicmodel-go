@@ -14,6 +14,19 @@ func (o *Operator) Update(q interface{}, k string, v interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
+
+	name, err := parseModelName(q)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
+	err = validateInput(q, "Update", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
 	payload := reflect.ValueOf(q).Elem()
 	update := expression.Set(expression.Name(k), expression.Value(v))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()

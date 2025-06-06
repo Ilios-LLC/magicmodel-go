@@ -15,10 +15,23 @@ func (o *Operator) Save(q interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
+
+	name, err := parseModelName(q)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+	
+	err = validateInput(q, "Save", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
 	payload := reflect.ValueOf(q).Elem()
 
-	if payload.FieldByName("ID").String() == "" {
-		name := parseModelName(q)
+	id := payload.FieldByName("ID").String()
+	if id == "" {
 		t := time.Now()
 		payload.FieldByName("Type").SetString(name)
 		payload.FieldByName("ID").SetString(uuid.New().String())
