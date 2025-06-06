@@ -50,36 +50,58 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create a new dog
-	dog := Dog{
+	buddy := Dog{
 		Name:  "Buddy",
 		Breed: "Dalmatian",
 	}
 
-	// Save to DynamoDB
-	o := mm.Create(&dog)
+	fido := Dog{
+		Name:  "Fido",
+		Breed: "Labrador",
+	}
+	
+	// Create dogs in DynamoDB
+	o := mm.Create(&buddy)
 	if o.Err != nil {
 		fmt.Println(o.Err)
 		os.Exit(1)
 	}
+	log.Info().Msg(fmt.Sprintf("Dog created successfully: %+v", buddy))
 	
-	log.Info().Msg(fmt.Sprintf("Dog created successfully: %+v", dog))
+	o = mm.Create(&fido)
+	if o.Err != nil {
+		fmt.Println(o.Err)
+		os.Exit(1)
+	}
+	log.Info().Msg(fmt.Sprintf("Dog created successfully: %+v", fido))
 	
 	// Find a dog by ID
 	var foundDog Dog
-	o = mm.Find(&foundDog, dog.ID)
+	o = mm.Find(&foundDog, buddy.ID)
 	if o.Err != nil {
 		fmt.Println(o.Err)
 		os.Exit(1)
 	}
-	
+	log.Info().Msg(fmt.Sprintf("Dog created successfully: %+v", foundDog))
+
 	// Update a dog
 	foundDog.Breed = "Labrador"
-	o = mm.Update(&foundDog)
+	o = mm.Save(&foundDog)
 	if o.Err != nil {
 		fmt.Println(o.Err)
 		os.Exit(1)
 	}
+	log.Info().Msg(fmt.Sprintf("Found dog successfully: %+v", foundDog))
+
+	
+	// Find all dogs
+	var allDogs []Dog
+	o = mm.All(&allDogs)
+	if o.Err != nil {
+		fmt.Println(o.Err)
+		os.Exit(1)
+	}
+	log.Info().Msg(fmt.Sprintf("Found all dogs successfully: %+v", allDogs))
 	
 	// Delete a dog
 	o = mm.Delete(&foundDog)
@@ -87,6 +109,8 @@ func main() {
 		fmt.Println(o.Err)
 		os.Exit(1)
 	}
+	log.Info().Msg(fmt.Sprintf("Dog deleted successfully: %+v", foundDog))
+
 }
 ```
 
@@ -95,27 +119,30 @@ func main() {
 ### Query with Where Clauses
 
 ```go
-var dogs []Dog
-o := mm.Where("Breed", "=", "Dalmatian").All(&dogs)
+// Find dogs with specific attribute
+var labradors []Dog
+o = mm.WhereV3(false, &labradors, "Breed", "Labrador")
 if o.Err != nil {
-	fmt.Println(o.Err)
-	os.Exit(1)
+    fmt.Println(o.Err)
+    os.Exit(1)
 }
+log.Info().Msg(fmt.Sprintf("Found labradors successfully: %+v", labradors))
+
+// Find dogs with chained attributes
+var labradorsNamedFido []Dog
+o = mm.WhereV3(true, &labradorsNamedFido, "Breed", "Labrador").WhereV3(false, &labradorsNamedFido, "Name", "Fido")
+if o.Err != nil {
+    fmt.Println(o.Err)
+    os.Exit(1)
+}
+log.Info().Msg(fmt.Sprintf("Found labradors with name Fido successfully: %+v", labradorsNamedFido))
 ```
 
 ### Soft Delete
 
 ```go
-// Soft delete (record remains in database but marked as deleted)
+// Soft delete (record remains in database but marked as deleted and is not returned in queries)
 o := mm.SoftDelete(&dog)
-if o.Err != nil {
-	fmt.Println(o.Err)
-	os.Exit(1)
-}
-
-// Find including soft-deleted items
-var allDogs []Dog
-o = mm.IncludeSoftDeleted().All(&allDogs)
 if o.Err != nil {
 	fmt.Println(o.Err)
 	os.Exit(1)
@@ -124,23 +151,19 @@ if o.Err != nil {
 
 ## Local Development
 
-For local development and testing, you can use a local DynamoDB instance:
+Simply create a test file and run magic model commands against a DynamoDB table.
 
-```go
-endpoint := "http://localhost:8000"
-mm, err := model.NewMagicModelOperator(context.Background(), "my-table", &endpoint, config.WithRegion("local"))
-```
+The function `NewMagicModelOperator` will create the table if it does not exist, so you can run tests without needing to manually set up the DynamoDB table.
+
+Alternatively, you can use [localstack](https://docs.localstack.cloud/user-guide/aws/dynamodb/) to run a local DynamoDB instance for testing.
 
 ## Testing
+MagicModel-Go utilizes `mockery` to generate mocks for the DynamoDB client, allowing you to write unit tests without needing a live DynamoDB instance.
 
-MagicModel-Go includes mocks for easy testing:
+To run tests, use the following command:
 
-```go
-// Create a mock DynamoDB client
-mockDB := &mocks.DynamoDBAPI{}
-
-// Initialize MagicModel with the mock
-mm := model.NewMagicModelOperatorWithClient(mockDB, "test-table")
+```bash
+go test ./...
 ```
 
 ## Contributing
@@ -160,4 +183,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Built with [AWS SDK for Go v2](https://github.com/aws/aws-sdk-go-v2)
-- Inspired by the simplicity of ActiveRecord and other ORMs
