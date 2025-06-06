@@ -117,7 +117,7 @@ func ValidateInput(q interface{}, operation, structName string) error {
 	}
 
 	if !hasModel {
-		return fmt.Errorf(fmt.Sprintf(`the %s operation encountered an error: struct %s must embed model.Model (e.g., model.Model `, operation, structName) + "`yaml:\",inline\"`" + `)`)
+		return fmt.Errorf(`the %s operation encountered an error: struct %s must embed model.Model (e.g., model.Model `, operation, structName+"`yaml:\",inline\"`"+`)`)
 	}
 	return nil
 }

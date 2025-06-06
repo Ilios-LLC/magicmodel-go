@@ -76,11 +76,11 @@ func setupTest(ctx context.Context) {
 	// Get endpoint
 	host, err := localstack.Host(ctx)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("error getting localstack host: %v", err)
 	}
 	port, err := localstack.MappedPort(ctx, "4566")
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("error getting localstack port: %v", err)
 	}
 	endpoint := fmt.Sprintf("http://%s:%s", host, port.Port())
 
