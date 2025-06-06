@@ -19,7 +19,7 @@ func (o *Operator) Delete(q interface{}) *Operator {
 		o.Err = err
 		return o
 	}
-	
+
 	err = ValidateInput(q, "Delete", name)
 	if err != nil {
 		o.Err = err
