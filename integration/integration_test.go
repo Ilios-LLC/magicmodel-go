@@ -94,7 +94,6 @@ func setupTest(ctx context.Context) {
 	if err != nil {
 		log.Fatalf("failed to init operator: %v", err)
 	}
-	return
 }
 
 // cleanupDogs removes all dogs from the database

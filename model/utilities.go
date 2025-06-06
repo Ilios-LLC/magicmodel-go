@@ -43,10 +43,6 @@ func SetField(item interface{}, fieldName string, value interface{}) error {
 	return nil
 }
 
-func generateNewModelInfo(v reflect.Value) {
-
-}
-
 func ParseModelName(q interface{}) (string, error) {
 	t := reflect.TypeOf(q)
 

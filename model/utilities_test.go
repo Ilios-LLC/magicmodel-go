@@ -96,11 +96,6 @@ func TestSetField(t *testing.T) {
 	}
 }
 
-type my_struct struct {
-	Model
-	Name string
-}
-
 func TestParseModelName(t *testing.T) {
 	tests := []struct {
 		name     string
