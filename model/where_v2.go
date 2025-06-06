@@ -67,7 +67,7 @@ func (o *Operator) WhereV2(isChain bool, q interface{}, fieldName string, fieldV
 
 	// Execute the query
 	o = o.executeWhereQuery(expr, q)
-	
+
 	// Update chain state
 	o.IsWhereChain = isChain
 	return o
