@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -75,10 +76,13 @@ func createDynamoDBTable(ctx context.Context) error {
 		BillingMode: types.BillingModePayPerRequest,
 	})
 	if err != nil {
-		if err.Error() != "ResourceInUseException: Cannot create preexisting table" {
+		var resourceInUse *types.ResourceInUseException
+		if errors.As(err, &resourceInUse) {
+			// Table already exists — that's fine, just continue
 			return nil
 		}
-		return fmt.Errorf("encountered an error during init operation: %v", err)
+		// Unexpected error
+		return fmt.Errorf("encountered an error during init operation: %w", err)
 	}
 
 	waiter := dynamodb.NewTableExistsWaiter(svc, func(o *dynamodb.TableExistsWaiterOptions) {
