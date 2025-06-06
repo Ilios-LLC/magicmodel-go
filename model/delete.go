@@ -14,14 +14,19 @@ func (o *Operator) Delete(q interface{}) *Operator {
 		return o
 	}
 
-	name, err := parseModelName(q)
-	err = validateInput(q, "Delete", name)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
 	}
 
-	err = validateInput(q, "Delete", name)
+	err = ValidateInput(q, "Delete", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
+	err = ValidateInput(q, "Delete", name)
 	if err != nil {
 		o.Err = err
 		return o

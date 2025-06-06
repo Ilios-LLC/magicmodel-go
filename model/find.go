@@ -14,12 +14,12 @@ func (o *Operator) Find(q interface{}, id string) *Operator {
 		return o
 	}
 
-	name, err := parseModelName(q)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
 	}
-	err = validateInput(q, "Find", name)
+	err = ValidateInput(q, "Find", name)
 	if err != nil {
 		o.Err = err
 		return o

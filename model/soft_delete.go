@@ -16,13 +16,13 @@ func (o *Operator) SoftDelete(q interface{}) *Operator {
 		return o
 	}
 
-	name, err := parseModelName(q)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
 	}
 
-	err = validateInput(q, "SoftDelete", name)
+	err = ValidateInput(q, "SoftDelete", name)
 	if err != nil {
 		o.Err = err
 		return o

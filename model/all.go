@@ -14,12 +14,12 @@ func (o *Operator) All(q interface{}) *Operator {
 		return o
 	}
 
-	name, err := parseModelName(q)
+	name, err := ParseModelName(q)
 	if err != nil {
 		o.Err = err
 		return o
 	}
-	err = validateInput(q, "All", name)
+	err = validateInputSlice(q, "All", name)
 	if err != nil {
 		o.Err = err
 		return o
