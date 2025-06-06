@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/uuid"
-	//"github.com/rs/zerolog/log"
 	"reflect"
 	"time"
 )
@@ -17,8 +16,13 @@ func (o *Operator) Create(q interface{}) *Operator {
 		return o
 	}
 
-	name := parseModelName(q)
-	err := validateInput(q, "Create", name)
+	name, err := parseModelName(q)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
+	err = validateInput(q, "Create", name)
 	if err != nil {
 		o.Err = err
 		return o
@@ -44,8 +48,16 @@ func (o *Operator) Create(q interface{}) *Operator {
 		return o
 	}
 
-	_, err = svc.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: aws.String(dynamoDBTableName),
+	// Use the operator's db field if available, otherwise fall back to the global svc
+	dbClient := o.db
+	tableName := o.tableName
+	if dbClient == nil {
+		dbClient = svc
+		tableName = dynamoDBTableName
+	}
+
+	_, err = dbClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
 		Item:      av,
 	})
 

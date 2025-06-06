@@ -13,8 +13,13 @@ func (o *Operator) Where(q interface{}, k string, v interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
-	name := parseModelName(q)
-	err := validateInput(q, "Where", name)
+	name, err := parseModelName(q)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
+	err = validateInputSlice(q, "Where", name)
 	if err != nil {
 		o.Err = err
 		return o

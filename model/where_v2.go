@@ -15,8 +15,12 @@ func (o *Operator) WhereV2(isChain bool, q interface{}, k string, v interface{})
 	if o.Err != nil {
 		return o
 	}
-	name := parseModelName(q)
-	err := validateInput(q, "WhereV2", name)
+	name, err := parseModelName(q)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+	err = validateInputSlice(q, "WhereV2", name)
 	if err != nil {
 		o.Err = err
 		return o
