@@ -16,6 +16,12 @@ func (o *Operator) WhereV2(isChain bool, q interface{}, k string, v interface{})
 		return o
 	}
 	name := parseModelName(q)
+	err := validateInput(q, "WhereV2", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
 	val := reflect.ValueOf(q)
 	if val.Kind() == reflect.Pointer {
 		val = val.Elem()

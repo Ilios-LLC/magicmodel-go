@@ -15,6 +15,14 @@ func (o *Operator) SoftDelete(q interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
+
+	name := parseModelName(q)
+	err := validateInput(q, "SoftDelete", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
 	t := time.Now()
 	payload := reflect.ValueOf(q).Elem()
 	update := expression.Set(expression.Name("DeletedAt"), expression.Value(t))

@@ -16,6 +16,14 @@ func (o *Operator) Create(q interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
+
+	name := parseModelName(q)
+	err := validateInput(q, "Create", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
 	payload := reflect.ValueOf(q).Elem()
 
 	if payload.FieldByName("ID").String() != "" {
@@ -23,7 +31,6 @@ func (o *Operator) Create(q interface{}) *Operator {
 		return o
 	}
 
-	name := parseModelName(q)
 	t := time.Now()
 
 	payload.FieldByName("Type").SetString(name)

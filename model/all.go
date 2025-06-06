@@ -13,7 +13,13 @@ func (o *Operator) All(q interface{}) *Operator {
 	if o.Err != nil {
 		return o
 	}
+
 	name := parseModelName(q)
+	err := validateInput(q, "All", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
 
 	cond := expression.Key("Type").Equal(expression.Value(name))
 	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())

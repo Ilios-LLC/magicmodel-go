@@ -59,3 +59,31 @@ func getFieldValue(value reflect.Value, fieldPath string) (reflect.Value, bool) 
 
 	return value, true
 }
+
+func validateInput(q interface{}, operation, structName string) error {
+	val := reflect.ValueOf(q)
+	if val.Kind() != reflect.Ptr || val.IsNil() {
+		return fmt.Errorf("the %s operation encountered an error: expected a non-nil pointer to a struct, got %T", operation, q)
+	}
+
+	checkPayload := val.Elem()
+	if checkPayload.Kind() != reflect.Struct {
+		return fmt.Errorf("the %s operation encountered an error: expected a pointer to a struct, got pointer to %s", operation, checkPayload.Kind())
+	}
+
+	modelType := reflect.TypeOf((*Model)(nil)).Elem()
+	hasModel := false
+
+	for i := 0; i < checkPayload.NumField(); i++ {
+		field := checkPayload.Type().Field(i)
+		if field.Anonymous && field.Type == modelType {
+			hasModel = true
+			break
+		}
+	}
+
+	if !hasModel {
+		return fmt.Errorf(fmt.Sprintf(`the %s operation encountered an error: struct %s must embed model.Model (e.g., model.Model `, operation, structName) + "`yaml:\",inline\"`" + `)`)
+	}
+	return nil
+}

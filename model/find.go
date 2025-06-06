@@ -13,7 +13,14 @@ func (o *Operator) Find(q interface{}, id string) *Operator {
 	if o.Err != nil {
 		return o
 	}
+
 	name := parseModelName(q)
+	err := validateInput(q, "Find", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
+
 	payload := map[string]types.AttributeValue{
 		"Type": &types.AttributeValueMemberS{Value: name},
 		"ID":   &types.AttributeValueMemberS{Value: id},

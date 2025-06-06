@@ -14,6 +14,11 @@ func (o *Operator) Where(q interface{}, k string, v interface{}) *Operator {
 		return o
 	}
 	name := parseModelName(q)
+	err := validateInput(q, "Where", name)
+	if err != nil {
+		o.Err = err
+		return o
+	}
 
 	cond := expression.Key("Type").Equal(expression.Value(name))
 	cond2 := expression.Name(k).Equal(expression.Value(v))
