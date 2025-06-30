@@ -13,10 +13,17 @@ import (
 )
 
 type Operator struct {
-	Err          error
-	IsWhereChain bool
-	db           DynamoDBAPI
-	tableName    string
+	Err               error
+	IsWhereChain      bool
+	PendingConditions []WhereV4Condition
+	IsWhereV4Chain    bool
+	db                DynamoDBAPI
+	tableName         string
+}
+
+type WhereV4Condition struct {
+	FieldName   string
+	FieldValues []interface{}
 }
 
 type Deconstructed struct {
