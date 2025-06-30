@@ -182,7 +182,7 @@ func TestOperator_WhereV4(t *testing.T) {
 
 			require.NoError(t, finalOp.Err)
 			require.Equal(t, tc.expectedItems, len(result))
-			
+
 			// Verify state is reset after chain completion
 			require.False(t, finalOp.IsWhereV4Chain)
 			require.Empty(t, finalOp.PendingConditions)
@@ -280,15 +280,15 @@ func TestBuildWhereV4Expression(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			expr, err := buildWhereV4Expression(tc.typeName, tc.conditions)
-			
+
 			if tc.expectErr {
 				require.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			require.NotNil(t, expr.KeyCondition())
-			
+
 			// Only check for filter if we have conditions
 			if len(tc.conditions) > 0 {
 				require.NotNil(t, expr.Filter())

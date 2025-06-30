@@ -58,7 +58,7 @@ func (o *Operator) WhereV4(isChain bool, q interface{}, fieldName string, fieldV
 // normalizeFieldValues converts single values to arrays and validates arrays
 func normalizeFieldValues(fieldValue interface{}) []interface{} {
 	val := reflect.ValueOf(fieldValue)
-	
+
 	// If it's already a slice, convert to []interface{}
 	if val.Kind() == reflect.Slice {
 		result := make([]interface{}, val.Len())
@@ -67,7 +67,7 @@ func normalizeFieldValues(fieldValue interface{}) []interface{} {
 		}
 		return result
 	}
-	
+
 	// Single value, wrap in slice
 	return []interface{}{fieldValue}
 }

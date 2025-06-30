@@ -242,17 +242,17 @@ func buildWhereV4Expression(typeName string, conditions []WhereV4Condition) (exp
 	// Add soft delete conditions
 	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())
 	softDeleteCond2 := expression.Not(expression.Name("DeletedAt").NotEqual(expression.Value(nil)))
-	
+
 	// Start with soft delete filter
 	finalFilter := softDeleteCond.Or(softDeleteCond2)
 
 	// Build field filter conditions if any exist
 	if len(conditions) > 0 {
 		var fieldFilterCondition expression.ConditionBuilder
-		
+
 		for i, condition := range conditions {
 			var conditionExpr expression.ConditionBuilder
-			
+
 			if len(condition.FieldValues) == 1 {
 				// Single value - use equality
 				conditionExpr = expression.Name(condition.FieldName).Equal(expression.Value(condition.FieldValues[0]))
@@ -264,14 +264,14 @@ func buildWhereV4Expression(typeName string, conditions []WhereV4Condition) (exp
 				}
 				conditionExpr = expression.Name(condition.FieldName).In(values[0], values[1:]...)
 			}
-			
+
 			if i == 0 {
 				fieldFilterCondition = conditionExpr
 			} else {
 				fieldFilterCondition = fieldFilterCondition.And(conditionExpr)
 			}
 		}
-		
+
 		// Combine field conditions with soft delete filter
 		finalFilter = fieldFilterCondition.And(finalFilter)
 	}
