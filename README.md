@@ -119,6 +119,8 @@ func main() {
 
 ### Query with Where Clauses
 
+#### WhereV3 (Legacy - In-Memory Filtering for Chained Queries)
+
 ```go
 // Find dogs with specific attribute
 var labradors []Dog
@@ -138,6 +140,57 @@ if o.Err != nil {
 }
 log.Info().Msg(fmt.Sprintf("Found labradors with name Fido successfully: %+v", labradorsNamedFido))
 ```
+
+#### WhereV4 (Recommended - Efficient Single Query with OR Support)
+
+WhereV4 provides improved performance by building a single DynamoDB query instead of multiple queries. It supports both single values and arrays for OR conditions within the same field.
+
+```go
+// Find dogs with single condition
+var labradors []Dog
+o = mm.WhereV4(false, &labradors, "Breed", "Labrador")
+if o.Err != nil {
+    fmt.Println(o.Err)
+    os.Exit(1)
+}
+log.Info().Msg(fmt.Sprintf("Found labradors successfully: %+v", labradors))
+
+// Find dogs with OR conditions (multiple breeds)
+var multiBreedDogs []Dog
+o = mm.WhereV4(false, &multiBreedDogs, "Breed", []string{"Labrador", "Dalmatian", "Beagle"})
+if o.Err != nil {
+    fmt.Println(o.Err)
+    os.Exit(1)
+}
+log.Info().Msg(fmt.Sprintf("Found dogs with multiple breeds successfully: %+v", multiBreedDogs))
+
+// Find dogs with chained AND conditions
+var labradorsNamedFido []Dog
+o = mm.WhereV4(true, &labradorsNamedFido, "Breed", "Labrador").WhereV4(false, &labradorsNamedFido, "Name", "Fido")
+if o.Err != nil {
+    fmt.Println(o.Err)
+    os.Exit(1)
+}
+log.Info().Msg(fmt.Sprintf("Found labradors with name Fido successfully: %+v", labradorsNamedFido))
+
+// Complex example: Find dogs that are (Labrador OR Dalmatian) AND (Name is Buddy OR Fido) AND Age is 3
+var complexQuery []Dog
+o = mm.WhereV4(true, &complexQuery, "Breed", []string{"Labrador", "Dalmatian"}).
+     WhereV4(true, &complexQuery, "Name", []string{"Buddy", "Fido"}).
+     WhereV4(false, &complexQuery, "Age", 3)
+if o.Err != nil {
+    fmt.Println(o.Err)
+    os.Exit(1)
+}
+log.Info().Msg(fmt.Sprintf("Found dogs matching complex criteria successfully: %+v", complexQuery))
+```
+
+**WhereV4 Key Features:**
+- **Single Query Execution**: All conditions are combined into one DynamoDB query for better performance
+- **OR Support**: Pass arrays for OR conditions within the same field (e.g., `[]string{"value1", "value2"}`)
+- **Flexible Input**: Accepts both single values and arrays - single values are automatically converted to single-element arrays
+- **Backward Compatible**: Same chaining syntax as WhereV3 with `isChain` parameter
+- **Deferred Execution**: Query only executes when `isChain=false`, allowing efficient condition accumulation
 
 ### Soft Delete
 

@@ -234,6 +234,55 @@ func buildWhereExpression(typeName, fieldName string, fieldValue interface{}) (e
 		Build()
 }
 
+// buildWhereV4Expression builds a comprehensive DynamoDB expression for multiple where conditions
+func buildWhereV4Expression(typeName string, conditions []WhereV4Condition) (expression.Expression, error) {
+	// Create key condition for the Type
+	keyCondition := expression.Key("Type").Equal(expression.Value(typeName))
+
+	// Add soft delete conditions
+	softDeleteCond := expression.Not(expression.Name("DeletedAt").AttributeExists())
+	softDeleteCond2 := expression.Not(expression.Name("DeletedAt").NotEqual(expression.Value(nil)))
+	
+	// Start with soft delete filter
+	finalFilter := softDeleteCond.Or(softDeleteCond2)
+
+	// Build field filter conditions if any exist
+	if len(conditions) > 0 {
+		var fieldFilterCondition expression.ConditionBuilder
+		
+		for i, condition := range conditions {
+			var conditionExpr expression.ConditionBuilder
+			
+			if len(condition.FieldValues) == 1 {
+				// Single value - use equality
+				conditionExpr = expression.Name(condition.FieldName).Equal(expression.Value(condition.FieldValues[0]))
+			} else {
+				// Multiple values - use IN operator
+				values := make([]expression.OperandBuilder, len(condition.FieldValues))
+				for j, val := range condition.FieldValues {
+					values[j] = expression.Value(val)
+				}
+				conditionExpr = expression.Name(condition.FieldName).In(values[0], values[1:]...)
+			}
+			
+			if i == 0 {
+				fieldFilterCondition = conditionExpr
+			} else {
+				fieldFilterCondition = fieldFilterCondition.And(conditionExpr)
+			}
+		}
+		
+		// Combine field conditions with soft delete filter
+		finalFilter = fieldFilterCondition.And(finalFilter)
+	}
+
+	// Build the complete expression
+	return expression.NewBuilder().
+		WithKeyCondition(keyCondition).
+		WithFilter(finalFilter).
+		Build()
+}
+
 // executeWhereQuery executes a DynamoDB query with the given expression
 func (o *Operator) executeWhereQuery(expr expression.Expression, result interface{}) *Operator {
 	response, err := svc.Query(context.TODO(), &dynamodb.QueryInput{

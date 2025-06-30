@@ -20,9 +20,12 @@ var dynamoDBEndpoint string
 
 // Dog is our test model
 type Dog struct {
-	Name  string
-	Breed string
-	Home  Home
+	Name        string
+	Breed       string
+	Age         int
+	Status      string
+	Environment string
+	Home        Home
 	model.Model
 }
 
@@ -484,4 +487,299 @@ func TestWhereV2(t *testing.T) {
 			t.Errorf("Expected dog breed to be 'Labrador', got '%s'", dog.Breed)
 		}
 	}
+}
+
+// TestWhereV4 tests filtering dogs with WhereV4 (improved performance + OR support)
+func TestWhereV4(t *testing.T) {
+	defer cleanupDogs(t)
+
+	// Create comprehensive test data
+	dogs := []Dog{
+		{Name: "Buddy", Breed: "Dalmatian", Age: 3, Status: "IN_PROGRESS", Environment: "dev", Home: Home{
+			FamilyName: "Miller",
+			Address: Address{
+				Street: "123 Bark St",
+				City:   "Dogtown",
+			},
+		}},
+		{Name: "Fido", Breed: "Labrador", Age: 5, Status: "QUEUED", Environment: "dev", Home: Home{
+			FamilyName: "Smith",
+			Address: Address{
+				Street: "456 Woof Ave",
+				City:   "Petsville",
+			},
+		}},
+		{Name: "Rex", Breed: "Labrador", Age: 3, Status: "IN_PROGRESS", Environment: "prod", Home: Home{
+			FamilyName: "Miller",
+			Address: Address{
+				Street: "789 Tail Rd",
+				City:   "Dogtown",
+			},
+		}},
+		{Name: "Spike", Breed: "Retriever", Age: 7, Status: "COMPLETED", Environment: "dev", Home: Home{
+			FamilyName: "Johnson",
+			Address: Address{
+				Street: "101 Fetch St",
+				City:   "Petsville",
+			},
+		}},
+		{Name: "Luna", Breed: "Dalmatian", Age: 2, Status: "QUEUED", Environment: "staging", Home: Home{
+			FamilyName: "Wilson",
+			Address: Address{
+				Street: "202 Play Ave",
+				City:   "Dogtown",
+			},
+		}},
+		{Name: "Max", Breed: "Beagle", Age: 4, Status: "IN_PROGRESS", Environment: "dev", Home: Home{
+			FamilyName: "Brown",
+			Address: Address{
+				Street: "303 Run Blvd",
+				City:   "Petsville",
+			},
+		}},
+	}
+
+	for i := range dogs {
+		o := mm.Create(&dogs[i])
+		if o.Err != nil {
+			t.Fatalf("Failed to create dog %s: %v", dogs[i].Name, o.Err)
+		}
+	}
+
+	// Test 1: Single condition with single value
+	t.Run("SingleConditionSingleValue", func(t *testing.T) {
+		var labradors []Dog
+		o := mm.WhereV4(false, &labradors, "Breed", "Labrador")
+		if o.Err != nil {
+			t.Fatalf("Failed to find Labradors: %v", o.Err)
+		}
+
+		if len(labradors) != 2 {
+			t.Errorf("Expected 2 Labradors, got %d", len(labradors))
+		}
+
+		for _, dog := range labradors {
+			if dog.Breed != "Labrador" {
+				t.Errorf("Expected dog breed to be 'Labrador', got '%s'", dog.Breed)
+			}
+		}
+	})
+
+	// Test 2: Single condition with multiple values (OR within same field)
+	t.Run("SingleConditionMultipleValues", func(t *testing.T) {
+		var multiBreedDogs []Dog
+		o := mm.WhereV4(false, &multiBreedDogs, "Breed", []string{"Labrador", "Dalmatian"})
+		if o.Err != nil {
+			t.Fatalf("Failed to find Labradors or Dalmatians: %v", o.Err)
+		}
+
+		if len(multiBreedDogs) != 4 {
+			t.Errorf("Expected 4 dogs (Labradors + Dalmatians), got %d", len(multiBreedDogs))
+		}
+
+		for _, dog := range multiBreedDogs {
+			if dog.Breed != "Labrador" && dog.Breed != "Dalmatian" {
+				t.Errorf("Expected dog breed to be 'Labrador' or 'Dalmatian', got '%s'", dog.Breed)
+			}
+		}
+	})
+
+	// Test 3: Chained AND conditions with single values
+	t.Run("ChainedAndConditionsSingleValues", func(t *testing.T) {
+		var specificDogs []Dog
+		o := mm.WhereV4(true, &specificDogs, "Breed", "Labrador").
+			WhereV4(false, &specificDogs, "Environment", "dev")
+		if o.Err != nil {
+			t.Fatalf("Failed to find Labrador dogs in dev environment: %v", o.Err)
+		}
+
+		if len(specificDogs) != 1 {
+			t.Errorf("Expected 1 Labrador in dev environment, got %d", len(specificDogs))
+		}
+
+		if len(specificDogs) > 0 {
+			if specificDogs[0].Breed != "Labrador" || specificDogs[0].Environment != "dev" {
+				t.Errorf("Expected Labrador in dev environment, got %+v", specificDogs[0])
+			}
+		}
+	})
+
+	// Test 4: Chained AND conditions with mixed single/array values
+	t.Run("ChainedMixedConditions", func(t *testing.T) {
+		var mixedResults []Dog
+		o := mm.WhereV4(true, &mixedResults, "Breed", []string{"Labrador", "Dalmatian"}).
+			WhereV4(false, &mixedResults, "Environment", "dev")
+		if o.Err != nil {
+			t.Fatalf("Failed to find Labradors/Dalmatians in dev: %v", o.Err)
+		}
+
+		if len(mixedResults) != 2 {
+			t.Errorf("Expected 2 dogs (Labrador or Dalmatian in dev), got %d", len(mixedResults))
+		}
+
+		for _, dog := range mixedResults {
+			if (dog.Breed != "Labrador" && dog.Breed != "Dalmatian") || dog.Environment != "dev" {
+				t.Errorf("Expected Labrador/Dalmatian in dev, got %+v", dog)
+			}
+		}
+	})
+
+	// Test 5: User's specific example - Name AND (Status OR) AND Environment
+	t.Run("UserExampleStatusOR", func(t *testing.T) {
+		var statusOrResults []Dog
+		o := mm.WhereV4(true, &statusOrResults, "Status", []string{"IN_PROGRESS", "QUEUED"}).
+			WhereV4(false, &statusOrResults, "Environment", "dev")
+		if o.Err != nil {
+			t.Fatalf("Failed to find dogs with Status IN_PROGRESS/QUEUED in dev: %v", o.Err)
+		}
+
+		if len(statusOrResults) != 3 {
+			t.Errorf("Expected 3 dogs (IN_PROGRESS or QUEUED in dev), got %d", len(statusOrResults))
+		}
+
+		for _, dog := range statusOrResults {
+			if (dog.Status != "IN_PROGRESS" && dog.Status != "QUEUED") || dog.Environment != "dev" {
+				t.Errorf("Expected Status IN_PROGRESS/QUEUED in dev, got %+v", dog)
+			}
+		}
+	})
+
+	// Test 6: Three-way chained conditions
+	t.Run("ThreeWayChainedConditions", func(t *testing.T) {
+		var threeWayResults []Dog
+		o := mm.WhereV4(true, &threeWayResults, "Age", 3).
+			WhereV4(true, &threeWayResults, "Status", "IN_PROGRESS").
+			WhereV4(false, &threeWayResults, "Environment", []string{"dev", "prod"})
+		if o.Err != nil {
+			t.Fatalf("Failed to find 3-year-old IN_PROGRESS dogs in dev/prod: %v", o.Err)
+		}
+
+		if len(threeWayResults) != 2 {
+			t.Errorf("Expected 2 dogs matching all criteria, got %d", len(threeWayResults))
+		}
+
+		for _, dog := range threeWayResults {
+			if dog.Age != 3 || dog.Status != "IN_PROGRESS" || (dog.Environment != "dev" && dog.Environment != "prod") {
+				t.Errorf("Expected 3-year-old IN_PROGRESS dog in dev/prod, got %+v", dog)
+			}
+		}
+	})
+
+	// Test 7: Multiple separate operations (state reset verification)
+	t.Run("MultipleSeparateOperations", func(t *testing.T) {
+		// First operation
+		var dalmatians []Dog
+		o := mm.WhereV4(false, &dalmatians, "Breed", "Dalmatian")
+		if o.Err != nil {
+			t.Fatalf("Failed first operation: %v", o.Err)
+		}
+
+		if len(dalmatians) != 2 {
+			t.Errorf("Expected 2 Dalmatians in first operation, got %d", len(dalmatians))
+		}
+
+		// Second operation (should reset state)
+		var retrievers []Dog
+		o = mm.WhereV4(false, &retrievers, "Breed", "Retriever")
+		if o.Err != nil {
+			t.Fatalf("Failed second operation: %v", o.Err)
+		}
+
+		if len(retrievers) != 1 {
+			t.Errorf("Expected 1 Retriever in second operation, got %d", len(retrievers))
+		}
+
+		// Third operation with chaining
+		var chainedResults []Dog
+		o = mm.WhereV4(true, &chainedResults, "Environment", "dev").
+			WhereV4(false, &chainedResults, "Age", []int{3, 4, 5})
+		if o.Err != nil {
+			t.Fatalf("Failed third chained operation: %v", o.Err)
+		}
+
+		expectedCount := 3 // Buddy(3), Fido(5), Max(4) in dev environment
+		if len(chainedResults) != expectedCount {
+			t.Errorf("Expected %d dogs in third operation, got %d", expectedCount, len(chainedResults))
+		}
+	})
+
+	// Test 8: Nested field access
+	t.Run("NestedFieldAccess", func(t *testing.T) {
+		var millerDogs []Dog
+		o := mm.WhereV4(true, &millerDogs, "Home.FamilyName", "Miller").
+			WhereV4(false, &millerDogs, "Age", 3)
+		if o.Err != nil {
+			t.Fatalf("Failed to find Miller family 3-year-old dogs: %v", o.Err)
+		}
+
+		if len(millerDogs) != 2 {
+			t.Errorf("Expected 2 Miller family 3-year-old dogs, got %d", len(millerDogs))
+		}
+
+		for _, dog := range millerDogs {
+			if dog.Home.FamilyName != "Miller" || dog.Age != 3 {
+				t.Errorf("Expected Miller family 3-year-old dog, got %+v", dog)
+			}
+		}
+	})
+
+	// Test 9: OR with many values
+	t.Run("ORWithManyValues", func(t *testing.T) {
+		var manyStatusDogs []Dog
+		o := mm.WhereV4(false, &manyStatusDogs, "Status", []string{"IN_PROGRESS", "QUEUED", "COMPLETED"})
+		if o.Err != nil {
+			t.Fatalf("Failed to find dogs with multiple statuses: %v", o.Err)
+		}
+
+		if len(manyStatusDogs) != 6 {
+			t.Errorf("Expected 6 dogs with various statuses, got %d", len(manyStatusDogs))
+		}
+
+		for _, dog := range manyStatusDogs {
+			if dog.Status != "IN_PROGRESS" && dog.Status != "QUEUED" && dog.Status != "COMPLETED" {
+				t.Errorf("Expected dog with IN_PROGRESS/QUEUED/COMPLETED status, got %+v", dog)
+			}
+		}
+	})
+
+	// Test 10: Complex real-world scenario
+	t.Run("ComplexRealWorldScenario", func(t *testing.T) {
+		// Find dogs that are (Dalmatian OR Beagle) AND (Age 2-4) AND in (dev OR staging) environment
+		var complexResults []Dog
+		o := mm.WhereV4(true, &complexResults, "Breed", []string{"Dalmatian", "Beagle"}).
+			WhereV4(true, &complexResults, "Age", []int{2, 3, 4}).
+			WhereV4(false, &complexResults, "Environment", []string{"dev", "staging"})
+		if o.Err != nil {
+			t.Fatalf("Failed complex query: %v", o.Err)
+		}
+
+		expectedCount := 3 // Buddy(Dalmatian,3,dev), Luna(Dalmatian,2,staging), Max(Beagle,4,dev)
+		if len(complexResults) != expectedCount {
+			t.Errorf("Expected %d dogs in complex query, got %d", expectedCount, len(complexResults))
+		}
+
+		for _, dog := range complexResults {
+			validBreed := dog.Breed == "Dalmatian" || dog.Breed == "Beagle"
+			validAge := dog.Age >= 2 && dog.Age <= 4
+			validEnv := dog.Environment == "dev" || dog.Environment == "staging"
+
+			if !validBreed || !validAge || !validEnv {
+				t.Errorf("Dog doesn't match complex criteria, got %+v", dog)
+			}
+		}
+	})
+
+	// Test 11: Empty results
+	t.Run("EmptyResults", func(t *testing.T) {
+		var emptyResults []Dog
+		o := mm.WhereV4(true, &emptyResults, "Breed", "NonExistentBreed").
+			WhereV4(false, &emptyResults, "Status", "ACTIVE")
+		if o.Err != nil {
+			t.Fatalf("Failed query that should return empty results: %v", o.Err)
+		}
+
+		if len(emptyResults) != 0 {
+			t.Errorf("Expected 0 dogs for non-existent breed, got %d", len(emptyResults))
+		}
+	})
 }
