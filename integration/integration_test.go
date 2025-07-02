@@ -26,6 +26,7 @@ type Dog struct {
 	Status      string
 	Environment string
 	Home        Home
+	IsNaughty   bool
 	model.Model
 }
 
@@ -495,14 +496,14 @@ func TestWhereV4(t *testing.T) {
 
 	// Create comprehensive test data
 	dogs := []Dog{
-		{Name: "Buddy", Breed: "Dalmatian", Age: 3, Status: "IN_PROGRESS", Environment: "dev", Home: Home{
+		{Name: "Buddy", Breed: "Dalmatian", Age: 3, Status: "IN_PROGRESS", IsNaughty: true, Environment: "dev", Home: Home{
 			FamilyName: "Miller",
 			Address: Address{
 				Street: "123 Bark St",
 				City:   "Dogtown",
 			},
 		}},
-		{Name: "Fido", Breed: "Labrador", Age: 5, Status: "QUEUED", Environment: "dev", Home: Home{
+		{Name: "Fido", Breed: "Labrador", Age: 5, Status: "QUEUED", Environment: "dev", IsNaughty: false, Home: Home{
 			FamilyName: "Smith",
 			Address: Address{
 				Street: "456 Woof Ave",
@@ -627,19 +628,36 @@ func TestWhereV4(t *testing.T) {
 	// Test 5: User's specific example - Name AND (Status OR) AND Environment
 	t.Run("UserExampleStatusOR", func(t *testing.T) {
 		var statusOrResults []Dog
-		o := mm.WhereV4(true, &statusOrResults, "Status", []string{"IN_PROGRESS", "QUEUED"}).
-			WhereV4(false, &statusOrResults, "Environment", "dev")
+		o := mm.WhereV4(true, &statusOrResults, "Status", []string{"IN_PROGRESS", "QUEUED"}).WhereV4(true, &statusOrResults, "Environment", "dev").WhereV4(true, &statusOrResults, "IsNaughty", true).WhereV4(false, &statusOrResults, "Name", "Buddy")
 		if o.Err != nil {
 			t.Fatalf("Failed to find dogs with Status IN_PROGRESS/QUEUED in dev: %v", o.Err)
 		}
 
-		if len(statusOrResults) != 3 {
-			t.Errorf("Expected 3 dogs (IN_PROGRESS or QUEUED in dev), got %d", len(statusOrResults))
+		if len(statusOrResults) != 1 {
+			t.Errorf("Expected 1 dog (Buddy with IN_PROGRESS/QUEUED status in dev), got %d", len(statusOrResults))
 		}
 
 		for _, dog := range statusOrResults {
-			if (dog.Status != "IN_PROGRESS" && dog.Status != "QUEUED") || dog.Environment != "dev" {
-				t.Errorf("Expected Status IN_PROGRESS/QUEUED in dev, got %+v", dog)
+			if (dog.Status != "IN_PROGRESS" && dog.Status != "QUEUED") || dog.Environment != "dev" || dog.Name != "Buddy" {
+				t.Errorf("Expected Buddy with Status IN_PROGRESS/QUEUED in dev, got %+v", dog)
+			}
+		}
+	})
+
+	t.Run("BooleanFilterONly", func(t *testing.T) {
+		var statusOrResults []Dog
+		o := mm.WhereV4(false, &statusOrResults, "IsNaughty", true)
+		if o.Err != nil {
+			t.Fatalf("Failed to find dogs with Status IN_PROGRESS/QUEUED in dev: %v", o.Err)
+		}
+
+		if len(statusOrResults) != 1 {
+			t.Errorf("Expected 1 dog (Buddy with IN_PROGRESS/QUEUED status in dev), got %d", len(statusOrResults))
+		}
+
+		for _, dog := range statusOrResults {
+			if !dog.IsNaughty {
+				t.Errorf("Expected Buddy with Status IN_PROGRESS/QUEUED in dev, got %+v", dog)
 			}
 		}
 	})
